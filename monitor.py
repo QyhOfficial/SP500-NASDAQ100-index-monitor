@@ -189,19 +189,22 @@ def check_target(target: dict) -> list[dict]:
                 return [{"title": f"Warning: {name} page content changed (could not parse entries, please check manually)", "url": url}]
         return []
 
-    # Compare with cache
+    # Compare with cache (accumulative: merge new into old, never remove)
     old_cache = load_cache(cache_file)
     new_items = []
-    all_entries = {}
+    new_entries = {}
+    merged_cache = dict(old_cache)
 
     for item in items:
         fp = fingerprint(item)
-        all_entries[fp] = item["title"]
         if fp not in old_cache:
             new_items.append(item)
+            new_entries[fp] = item["title"]
+        else:
+            merged_cache[fp] = item["title"]
 
-    # Update cache
-    save_cache(cache_file, all_entries)
+    # Update cache: new entries first, then old ones
+    save_cache(cache_file, {**new_entries, **merged_cache})
 
     # First run: only establish baseline, no notifications
     if not old_cache:
