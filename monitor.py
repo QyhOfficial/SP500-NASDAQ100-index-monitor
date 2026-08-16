@@ -81,31 +81,28 @@ def parse_nasdaq(html: str) -> list[dict]:
     soup = BeautifulSoup(html, "html.parser")
     items = []
 
-    articles = (
-        soup.select(".view-content .views-row")
-        or soup.select("article")
-        or soup.select(".search-result, .news-item")
-        or soup.select("div.item, li.item")
-    )
+    # Primary: each search result has a direct <a> containing <h3> for the title
+    for result in soup.select(".search-result"):
+        link = result.find("a", href=True)
+        # Skip the category filter link (first <a> has class "search-result-contenttype")
+        # The article link is the one whose href starts with /news-releases/
+        for a_tag in result.find_all("a", href=True):
+            href = a_tag.get("href", "")
+            if "/news-releases/" in href:
+                title = a_tag.get_text(strip=True)
+                if title:
+                    full_url = f"https://ir.nasdaq.com{href}" if not href.startswith("http") else href
+                    items.append({"title": title, "url": full_url})
+                break
 
-    if not articles:
+    # Fallback: scan all links if structured selectors didn't match
+    if not items:
         for link in soup.select("a[href]"):
             title = link.get_text(strip=True)
             href = link.get("href", "")
-            if title and len(title) > 20 and "/news/" in href.lower():
+            if title and len(title) > 20 and "/news-releases/" in href:
                 full_url = href if href.startswith("http") else f"https://ir.nasdaq.com{href}"
                 items.append({"title": title, "url": full_url})
-    else:
-        for article in articles:
-            link = article.find("a", href=True)
-            if not link:
-                continue
-            title = link.get_text(strip=True)
-            href = link["href"]
-            if not title:
-                continue
-            full_url = href if href.startswith("http") else f"https://ir.nasdaq.com{href}"
-            items.append({"title": title, "url": full_url})
 
     return items
 
