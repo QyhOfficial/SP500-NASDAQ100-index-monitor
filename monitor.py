@@ -60,7 +60,7 @@ def parse_spglobal(html: str) -> list[dict]:
             href = link.get("href", "")
             if title and "to join" in title.lower() and len(title) > 20:
                 full_url = href if href.startswith("http") else f"https://press.spglobal.com{href}"
-                items.append({"title": title, "url": full_url})
+                items.append({"title": clean_title(title), "url": full_url})
     else:
         for article in articles:
             link = article.find("a", href=True)
@@ -71,7 +71,7 @@ def parse_spglobal(html: str) -> list[dict]:
             if not title:
                 continue
             full_url = href if href.startswith("http") else f"https://press.spglobal.com{href}"
-            items.append({"title": title, "url": full_url})
+            items.append({"title": clean_title(title), "url": full_url})
 
     return items
 
@@ -92,7 +92,7 @@ def parse_nasdaq(html: str) -> list[dict]:
                 title = a_tag.get_text(strip=True)
                 if title:
                     full_url = f"https://ir.nasdaq.com{href}" if not href.startswith("http") else href
-                    items.append({"title": title, "url": full_url})
+                    items.append({"title": clean_title(title), "url": full_url})
                 break
 
     # Fallback: scan all links if structured selectors didn't match
@@ -102,7 +102,7 @@ def parse_nasdaq(html: str) -> list[dict]:
             href = link.get("href", "")
             if title and len(title) > 20 and "/news-releases/" in href:
                 full_url = href if href.startswith("http") else f"https://ir.nasdaq.com{href}"
-                items.append({"title": title, "url": full_url})
+                items.append({"title": clean_title(title), "url": full_url})
 
     return items
 
@@ -127,6 +127,14 @@ def load_cache(cache_file: Path) -> dict[str, str]:
 
 def save_cache(cache_file: Path, entries: dict[str, str]):
     cache_file.write_text(json.dumps(entries, ensure_ascii=False, indent=2))
+
+
+def clean_title(title: str, max_len: int = 200) -> str:
+    """Normalize whitespace and truncate overly long titles."""
+    title = " ".join(title.split())
+    if len(title) > max_len:
+        title = title[:max_len] + "..."
+    return title
 
 
 def fingerprint(item: dict) -> str:
