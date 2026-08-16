@@ -206,11 +206,6 @@ def check_target(target: dict) -> list[dict]:
     # Update cache: new entries first, then old ones
     save_cache(cache_file, {**new_entries, **merged_cache})
 
-    # First run: only establish baseline, no notifications
-    if not old_cache:
-        print(f"  First run, cached {len(all_entries)} entries as baseline")
-        return []
-
     if new_items:
         print(f"  Found {len(new_items)} new entries!")
     else:
