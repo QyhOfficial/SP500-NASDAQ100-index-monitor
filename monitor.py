@@ -24,7 +24,7 @@ TARGETS = [
         "cache_file": CACHE_DIR / "spglobal.json",
     },
     {
-        "name": "Nasdaq IR - Index Changes",
+        "name": "Nasdaq - Index Changes",
         "url": "https://ir.nasdaq.com/search?query=to+join&f%5B0%5D=type%3Anir_news",
         "cache_file": CACHE_DIR / "nasdaq.json",
     },
@@ -109,7 +109,7 @@ def parse_nasdaq(html: str) -> list[dict]:
 
 PARSERS = {
     "S&P Global - Index Changes": parse_spglobal,
-    "Nasdaq IR - Index Changes": parse_nasdaq,
+    "Nasdaq - Index Changes": parse_nasdaq,
 }
 
 
