@@ -56,7 +56,7 @@ def parse_spglobal(html: str) -> list[dict]:
         for link in soup.select("a[href]"):
             title = link.get_text(strip=True)
             href = link.get("href", "")
-            if title and "join" in title.lower() and len(title) > 20:
+            if title and "to join" in title.lower() and len(title) > 20:
                 full_url = href if href.startswith("http") else f"https://press.spglobal.com{href}"
                 items.append({"title": title, "url": full_url})
     else:
