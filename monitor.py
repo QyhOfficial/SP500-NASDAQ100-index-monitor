@@ -114,16 +114,19 @@ PARSERS = {
 
 
 # ── Cache & Comparison ────────────────────────────────
-def load_cache(cache_file: Path) -> set[str]:
-    """Load known entry fingerprints from cache."""
+def load_cache(cache_file: Path) -> dict[str, str]:
+    """Load known entry fingerprints from cache. Returns {hash: title}."""
     if cache_file.exists():
         data = json.loads(cache_file.read_text())
-        return set(data)
-    return set()
+        # Support old format (list of hashes) and new format (dict)
+        if isinstance(data, list):
+            return {h: "" for h in data}
+        return data
+    return {}
 
 
-def save_cache(cache_file: Path, fingerprints: set[str]):
-    cache_file.write_text(json.dumps(sorted(fingerprints), ensure_ascii=False, indent=2))
+def save_cache(cache_file: Path, entries: dict[str, str]):
+    cache_file.write_text(json.dumps(entries, ensure_ascii=False, indent=2))
 
 
 def fingerprint(item: dict) -> str:
@@ -173,28 +176,28 @@ def check_target(target: dict) -> list[dict]:
         page_hash = hashlib.md5(resp.text.encode()).hexdigest()
         old_cache = load_cache(cache_file)
         if page_hash not in old_cache:
-            save_cache(cache_file, {page_hash})
+            save_cache(cache_file, {page_hash: "(whole page hash)"})
             if old_cache:  # Not the first run
                 return [{"title": f"Warning: {name} page content changed (could not parse entries, please check manually)", "url": url}]
         return []
 
     # Compare with cache
-    old_fingerprints = load_cache(cache_file)
+    old_cache = load_cache(cache_file)
     new_items = []
-    all_fingerprints = set()
+    all_entries = {}
 
     for item in items:
         fp = fingerprint(item)
-        all_fingerprints.add(fp)
-        if fp not in old_fingerprints:
+        all_entries[fp] = item["title"]
+        if fp not in old_cache:
             new_items.append(item)
 
     # Update cache
-    save_cache(cache_file, all_fingerprints)
+    save_cache(cache_file, all_entries)
 
     # First run: only establish baseline, no notifications
-    if not old_fingerprints:
-        print(f"  First run, cached {len(all_fingerprints)} entries as baseline")
+    if not old_cache:
+        print(f"  First run, cached {len(all_entries)} entries as baseline")
         return []
 
     if new_items:
