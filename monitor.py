@@ -1,6 +1,6 @@
 """
-监控 S&P Global 和 Nasdaq 指数调整新闻页面
-检测到新条目时通过 Telegram 发送通知
+Monitor S&P Global and Nasdaq index rebalance news pages.
+Send Telegram notifications when new entries are detected.
 """
 
 import os
@@ -10,7 +10,7 @@ import requests
 from bs4 import BeautifulSoup
 from pathlib import Path
 
-# ── 配置 ──────────────────────────────────────────────
+# ── Config ────────────────────────────────────────────
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
@@ -39,12 +39,13 @@ HEADERS = {
 }
 
 
-# ── 页面解析 ──────────────────────────────────────────
+# ── Page Parsing ──────────────────────────────────────
 def parse_spglobal(html: str) -> list[dict]:
-    """解析 S&P Global 新闻列表"""
+    """Parse S&P Global news list."""
     soup = BeautifulSoup(html, "html.parser")
     items = []
 
+    # Try multiple selectors to adapt to page structure changes
     articles = (
         soup.select("article")
         or soup.select(".wd_item, .wd_news_item")
@@ -52,6 +53,7 @@ def parse_spglobal(html: str) -> list[dict]:
         or soup.select("div.item, li.item")
     )
 
+    # Fallback: scan all links and filter by keyword and title length
     if not articles:
         for link in soup.select("a[href]"):
             title = link.get_text(strip=True)
@@ -75,7 +77,7 @@ def parse_spglobal(html: str) -> list[dict]:
 
 
 def parse_nasdaq(html: str) -> list[dict]:
-    """解析 Nasdaq IR 新闻列表"""
+    """Parse Nasdaq IR news list."""
     soup = BeautifulSoup(html, "html.parser")
     items = []
 
@@ -114,9 +116,9 @@ PARSERS = {
 }
 
 
-# ── 缓存与比较 ────────────────────────────────────────
+# ── Cache & Comparison ────────────────────────────────
 def load_cache(cache_file: Path) -> set[str]:
-    """加载已知条目的指纹集合"""
+    """Load known entry fingerprints from cache."""
     if cache_file.exists():
         data = json.loads(cache_file.read_text())
         return set(data)
@@ -128,12 +130,12 @@ def save_cache(cache_file: Path, fingerprints: set[str]):
 
 
 def fingerprint(item: dict) -> str:
-    """为单个条目生成唯一指纹"""
+    """Generate a unique fingerprint for an entry."""
     raw = f"{item['title']}|{item['url']}"
     return hashlib.md5(raw.encode()).hexdigest()
 
 
-# ── Telegram 通知 ──────────────────────────────────────
+# ── Telegram Notification ─────────────────────────────
 def send_telegram(message: str):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
@@ -144,40 +146,42 @@ def send_telegram(message: str):
     }
     resp = requests.post(url, json=payload, timeout=10)
     resp.raise_for_status()
-    print(f"✅ Telegram 通知已发送")
+    print("Telegram notification sent")
 
 
-# ── 主逻辑 ─────────────────────────────────────────────
+# ── Main Logic ────────────────────────────────────────
 def check_target(target: dict) -> list[dict]:
-    """检查单个目标页面，返回新增条目"""
+    """Check a single target page, return new entries."""
     name = target["name"]
     url = target["url"]
     cache_file = target["cache_file"]
 
-    print(f"\n🔍 正在检查: {name}")
-    print(f"   URL: {url}")
+    print(f"\nChecking: {name}")
+    print(f"  URL: {url}")
 
     try:
         resp = requests.get(url, headers=HEADERS, timeout=30)
         resp.raise_for_status()
     except requests.RequestException as e:
-        print(f"   ❌ 请求失败: {e}")
+        print(f"  Request failed: {e}")
         return []
 
     parser = PARSERS[name]
     items = parser(resp.text)
-    print(f"   📄 解析到 {len(items)} 条结果")
+    print(f"  Parsed {len(items)} entries")
 
     if not items:
-        print("   ⚠️ 未解析到任何条目（页面结构可能已变化）")
+        print("  No entries parsed (page structure may have changed)")
+        # Fallback: use page content hash to detect changes
         page_hash = hashlib.md5(resp.text.encode()).hexdigest()
         old_cache = load_cache(cache_file)
         if page_hash not in old_cache:
             save_cache(cache_file, {page_hash})
-            if old_cache:
-                return [{"title": f"⚠️ {name} 页面内容有变化（未能解析具体条目，请手动查看）", "url": url}]
+            if old_cache:  # Not the first run
+                return [{"title": f"Warning: {name} page content changed (could not parse entries, please check manually)", "url": url}]
         return []
 
+    # Compare with cache
     old_fingerprints = load_cache(cache_file)
     new_items = []
     all_fingerprints = set()
@@ -188,23 +192,25 @@ def check_target(target: dict) -> list[dict]:
         if fp not in old_fingerprints:
             new_items.append(item)
 
+    # Update cache
     save_cache(cache_file, all_fingerprints)
 
+    # First run: only establish baseline, no notifications
     if not old_fingerprints:
-        print(f"   📝 首次运行，已缓存 {len(all_fingerprints)} 条作为基线")
+        print(f"  First run, cached {len(all_fingerprints)} entries as baseline")
         return []
 
     if new_items:
-        print(f"   🆕 发现 {len(new_items)} 条新消息!")
+        print(f"  Found {len(new_items)} new entries!")
     else:
-        print(f"   ✅ 无新消息")
+        print("  No new entries")
 
     return new_items
 
 
 def main():
     print("=" * 60)
-    print("📡 指数调整新闻监控")
+    print("Index Rebalance News Monitor")
     print("=" * 60)
 
     all_new = []
@@ -214,16 +220,17 @@ def main():
             all_new.append((target["name"], new_items))
 
     if all_new:
-        lines = ["🔔 <b>指数调整新消息</b>\n"]
+        # Build Telegram message
+        lines = ["<b>Index Rebalance Alert</b>\n"]
         for source, items in all_new:
-            lines.append(f"📌 <b>{source}</b>")
+            lines.append(f"<b>{source}</b>")
             for item in items:
-                lines.append(f'  • <a href="{item["url"]}">{item["title"]}</a>')
+                lines.append(f'  - <a href="{item["url"]}">{item["title"]}</a>')
             lines.append("")
         message = "\n".join(lines)
         send_telegram(message)
     else:
-        print("\n✅ 所有页面均无新消息")
+        print("\nNo new entries across all sources")
 
 
 if __name__ == "__main__":
