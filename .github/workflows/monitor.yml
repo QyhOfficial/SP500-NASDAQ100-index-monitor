@@ -1,0 +1,40 @@
+name: Index Monitor
+
+on:
+  schedule:
+    # 每30分钟运行一次
+    - cron: "*/30 * * * *"
+  workflow_dispatch: # 支持手动触发（用于测试）
+
+permissions:
+  contents: write  # 需要写权限来提交缓存文件
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run monitor
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python monitor.py
+
+      - name: Commit cache updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add cache/
+          git diff --cached --quiet || git commit -m "update cache [skip ci]"
+          git push
