@@ -2,12 +2,12 @@ name: Index Monitor
 
 on:
   schedule:
-    # 每30分钟运行一次
+    # Run every 30 minutes
     - cron: "*/30 * * * *"
-  workflow_dispatch: # 支持手动触发（用于测试）
+  workflow_dispatch: # Allow manual trigger for testing
 
 permissions:
-  contents: write  # 需要写权限来提交缓存文件
+  contents: write  # Required to commit cache files
 
 jobs:
   monitor:
