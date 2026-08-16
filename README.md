@@ -40,7 +40,7 @@ git push -u origin main
 
 ### 3. Configure Secrets
 
-Go to **Settings → Secrets and variables → Actions** and add:
+Go to **Settings → Secrets and variables → Actions**, click **New repository secret**, and add:
 
 | Secret Name | Value |
 |---|---|
