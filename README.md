@@ -59,7 +59,6 @@ The repository includes pre-existing cache files in the `cache/` directory. If y
 
 ## Notes
 
-- **First run** does not send notifications — it only caches current page content as a baseline
 - Cache files are stored in `cache/` and auto-committed by Actions
 - GitHub Actions cron scheduling may have a few minutes of delay — this is normal
 - If a page structure change causes parsing to fail, the script falls back to full-page hash comparison and alerts you to check manually
