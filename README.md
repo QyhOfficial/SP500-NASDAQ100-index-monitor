@@ -18,10 +18,17 @@ Automatically monitor S&P Global and Nasdaq index rebalance announcements via Gi
    - Visit `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates`
    - Find `chat.id` in the returned JSON (positive for personal chats, negative for groups)
 
-### 2. Create a GitHub Repository
+### 2. Set Up the Repository
+
+**Option A: Fork this repository**
+
+1. Click the **Fork** button at the top right of this page
+2. In your forked repository, go to **Settings → Actions → General**, and set **Workflow permissions** to **Read and write permissions**
+
+**Option B: Create a new repository from scratch**
 
 1. Create a new repository on GitHub (public or private)
-2. Push all files to the repository:
+2. Clone and push all files:
 
 ```bash
 git init
