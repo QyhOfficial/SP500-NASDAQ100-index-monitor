@@ -47,10 +47,14 @@ Go to **Settings → Secrets and variables → Actions** and add:
 | `TELEGRAM_BOT_TOKEN` | Your Bot Token from BotFather |
 | `TELEGRAM_CHAT_ID` | Your Chat ID |
 
-### 4. Enable Actions
+### 4. (Optional) Delete Existing Cache Files
+
+The repository includes pre-existing cache files in the `cache/` directory. If you keep them, you will not receive any notifications until the next index rebalance announcement is published. To receive an initial notification for testing purposes, delete `cache/spglobal.json` and `cache/nasdaq.json` from your repository before the first run.
+
+### 5. Enable Actions
 
 - Go to the **Actions** tab and confirm the workflow is enabled
-- Click "Run workflow" to trigger a manual test run (first run only establishes a baseline, no notifications will be sent)
+- Click "Run workflow" to trigger a manual test run
 - After that, the workflow runs automatically every 30 minutes
 
 ## Notes
